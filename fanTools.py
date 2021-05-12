@@ -1,8 +1,8 @@
 '''
 fanTools : Tools Created by xfan
 For coding efficiency
-second edition:
-2021/04/29
+third edition:
+2021/05/11
 '''
 import jieba
 from difflib import SequenceMatcher
@@ -43,8 +43,27 @@ def time_calc(func):
         return f
     return wrapper
 
+import datetime
+def now_when():
+    """
+    func : 输出现在的日期时间等
+    输入 : 无
+    输出 : str-现在的日期和时间
+    """
+    now = datetime.datetime.now()
+    print(now)
+    return str(now)[:-7]
+
 
 '''part_1 : 数据文件读写与处理'''
+
+#家卿格式json数据的读写
+# with open('dev.json', 'r', encoding='utf-8')as f:
+#     lines = f.readlines()
+#     for line in lines:
+#         data = json.loads(line)  # 此时data为一个dict{text,spo_list:[]}
+#         with open("train.json", 'a+',encoding='utf-8')as fout:
+#             fout.write(("{}\n".format(json.dumps(data, ensure_ascii=False))))
 
 
 def read_file_to_list(filepath,read_all =True,read_many = 0,shuffle=False):
@@ -240,47 +259,6 @@ def getChineseSentence(word):
     return ''.join(re.findall(u'[\u4e00-\u9fa5]', word))
 
 
-def KMP(s, p):
-    """
-    s为主串
-    p为模式串
-    如果t里有p，返回打头下标
-    """
-    nex = __getNext(p)
-    i = j = 0  # 分别是s和p的指针
-    while i < len(s) and j < len(p):
-        if j == -1 or s[i] == p[j]:  # j==-1是由于j=next[j]产生
-            i += 1
-            j += 1
-        else:
-            j = nex[j]
-
-    if j == len(p):  # 匹配到了
-        return i - j
-    else:
-        return -1
-
-
-def __getNext(p):
-    """
-    p为模式串
-    返回next数组，即部分匹配表
-    等同于从模式字符串的第1位(注意，不包括第0位)开始对自身进行匹配运算。
-    """
-    nex = [0] * len(p)
-    nex[0] = -1
-    i = 0
-    j = -1
-    while i < len(p) - 1:  # len(p)-1防止越界，因为nex前面插入了-1
-        if j == -1 or p[i] == p[j]:
-            i += 1
-            j += 1
-            nex[i] = j  # 这是最大的不同：记录next[i]
-        else:
-            j = nex[j]
-    return nex
-
-
 '''part_3 : 数据库常用操作'''
 
 
@@ -359,7 +337,10 @@ def cndb_givenP_findTriples_toList(p, find_part, find_all=False):
             if tag == find_part: break
         return list_all2
 
-# algorithms:
+
+'''part_4 : Algorithms'''
+
+
 def binary_search(target,num_list):
     """
     func : 二分查找，要求list有序
@@ -379,6 +360,112 @@ def binary_search(target,num_list):
             low = mid +1
     print("not found!")
     return -1
+
+
+def KMP(s, p):
+    """
+    s为主串
+    p为模式串
+    如果t里有p，返回打头下标
+    """
+    nex = __getNext(p)
+    i = j = 0  # 分别是s和p的指针
+    while i < len(s) and j < len(p):
+        if j == -1 or s[i] == p[j]:  # j==-1是由于j=next[j]产生
+            i += 1
+            j += 1
+        else:
+            j = nex[j]
+
+    if j == len(p):  # 匹配到了
+        return i - j
+    else:
+        return -1
+
+
+def __getNext(p):
+    """
+    p为模式串
+    返回next数组，即部分匹配表
+    等同于从模式字符串的第1位(注意，不包括第0位)开始对自身进行匹配运算。
+    """
+    nex = [0] * len(p)
+    nex[0] = -1
+    i = 0
+    j = -1
+    while i < len(p) - 1:  # len(p)-1防止越界，因为nex前面插入了-1
+        if j == -1 or p[i] == p[j]:
+            i += 1
+            j += 1
+            nex[i] = j  # 这是最大的不同：记录next[i]
+        else:
+            j = nex[j]
+    return nex
+
+
+'''part_5 : Parallel Accelerating'''
+
+
+def parallel_task_run():
+    '''多线程与多进程'''
+    a = '''
+    from multiprocessing import Process,Pool,cpu_count
+    [p = Process(target=run_proc, args=('test',))
+    p.start()
+    p.join() ] # 创建子进程时，只需要传入一个执行函数和函数的参数，创建一个Process实例，用start()方法启动，这样创建进程比fork()还要简单。
+join()方法可以等待子进程结束后再继续往下运行，通常用于进程间的同步。
+    [p = Pool(cpu_count) # pool默认大小在电脑上是8，最多同时执行8个进程，pool的默认大小为CPU的核数
+    for i in range(cpu_count+1): # task 0-7是立刻执行的，而task8要等待前面某个task完成后才执行，这是因为Pool的默认大小在我的电脑上是8，因此，最多同时执行8个进程。这是Pool有意设计的限制，并不是操作系统的限制
+        p.apply_async(long_time_task, args=(i,))
+    p.close() # 调用join之前必须先调用close，close后就不能继续添加新的process
+    p.join() # 对pool对象调用join方法会等待所有子进程执行完毕
+    ]
+    from threading import Thread # Thead和process用起来差不多 thread = Thread(target=count, args=(1,1))然后start和join
+    但是由于，多进程中，同一个变量，各自有一份拷贝存在于每个进程中，互不影响，而多线程中，所有变量都由所有线程共享，
+    所以，任何一个变量都可以被任何一个线程修改，因此，线程之间共享数据最大的危险在于多个线程同时改一个变量，把内容给改乱了
+    所以用多线程要加锁 lock.acquire() - func() - lock.release()
+    多核时候：
+    for i in range(multiprocessing.cpu_count()):
+    t = threading.Thread(target=loop)
+    t.start()
+    '''
+    print(a)
+    pass
+
+
+import  psutil
+import platform
+def show_computer_info():
+    def get_windows_cpu_speed():
+        import winreg
+        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
+        speed, type = winreg.QueryValueEx(key, "~MHz")
+        speed = round(float(speed) / 1024, 1)
+        return "{speed} GHz".format(speed=speed)
+
+    def get_cpu_speed():
+        osname = platform.system()  # 获取操作系统的名称
+        speed = ''
+        if osname in ["Windows", "Win32"]:
+            speed = get_windows_cpu_speed()
+        return speed
+
+    def get_cpu_info():
+        cpu1 = psutil.cpu_count()
+        cpu2 = psutil.cpu_count(logical=False)
+        print("cpu逻辑个数:", cpu1)
+        print("cpu真实内核个数:", cpu2)
+
+    def get_mem_info():
+        mem = psutil.virtual_memory()
+        mem1 = str(mem.total / 1024 / 1024 / 1024)
+        mem2 = str(mem.free / 1024 / 1024 / 1024)
+        print("内存总数为:", mem1[0:3], "G")
+        print("空闲内存总数:", mem2[0:3], "G")
+    print("cpu的频率 :", get_cpu_speed())
+    get_cpu_info()
+    get_mem_info()
+
 
 def main():
     pass
