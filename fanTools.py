@@ -250,6 +250,19 @@ def sentence_similarity_Jaccrad(model, reference):
     return jaccard_coefficient
 
 
+def intToRoman(num):
+    '''
+    整数转成罗马数字，整理成硬编码表，利用模运算和除法运算
+    输入 : 整数
+    输出 : 罗马数字
+    '''
+    THOUSANDS = ["", "M", "MM", "MMM"]
+    HUNDREDS = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"]
+    TENS = ["", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"]
+    ONES = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"]
+    return THOUSANDS[num // 1000] + HUNDREDS[num % 1000 // 100] + TENS[num % 100 // 10] + ONES[num % 10]
+
+
 def getChineseSentence(word):
     """
     func : 得到字符串中的中文
