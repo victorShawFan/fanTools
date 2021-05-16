@@ -1,23 +1,64 @@
 '''
 fanTools : Tools Created by xfan
 For coding efficiency
-third edition:
-2021/05/11
+fourth edition:
+2021/05/16
 '''
-import jieba
-from difflib import SequenceMatcher
-import pymongo
+import collections
+import json
+import random
 import re
 import time
-import random
-import json
-from operator import itemgetter
-import collections
+from difflib import SequenceMatcher
+
+import jieba
+import pymongo
 
 # 因为太过简易使用所以暂时不写做func但又很好用的包：
 # 1 - synonyms,
 
 '''part_0 : 杂活王'''
+
+
+def show_me_pycharm_shortcut():
+    print('''
+    git查看代码变动 : git diff
+    # 代码整理
+    快速建立遍历结构 : iter + enter
+    一键给代码加入indent : ctrl+Alt+L
+    一键整理import : ctrl+Alt+o
+    # 代码快捷键
+    当前行复制并且新增一行 : ctrl+D
+    剪切当前行 : ctrl+X
+    替换 : ctrl+R  (全局加shift)
+    插入模板 : ctrl+J
+    补全代码 : ctrl+shift+enter
+    快速修正 : Alt+enter
+    跳到代码块开始处 : ctrl+[
+    跳到代码块结束处 : ctrl+]
+    展开所有代码块 : ctrl+shift+(+)
+    收缩所有代码块 : ctrl+shift+(-)
+    上下移动选中代码 : ctrl+shift+ ↑ (↓)
+    进入列编辑模式 : alt+鼠标
+    选中单词 : ctrl+w
+    跨行选取相同的单词 : Alt+J
+    跳到下一个函数 : Alt + ↓
+    # 文件级别处理
+    将当前py文件重命名 : shift + F6
+    关闭当前py文件 : ctrl + F4
+    切换代码窗口查看 : ctrl+tab
+    查找文件名 : ctrl+shift+N
+    # 查看
+    快速查看函数说明文档 : ctrl + q
+    快速查看方法实现的内容 : ctrl+shift+i
+    查看函数定义源码 —>光标放在函数名 : ctrl+B 
+    查看函数参数提示 -> 括号内 : ctrl+P
+    查看方法在哪里被调用 : ctrl+Alt+H
+    # 命令行
+    快速打开万能栏 : 双击shift
+    万能命令行 : ctrl+shift+A
+    打开快捷键说明文档 : ctrl+shift+A 键入-> keymap
+    ''')
 
 
 def lineGap_xf():
@@ -35,15 +76,20 @@ def time_calc(func):
     装饰器功能 : 当每个函数都需要执行一个相同操作，可以把该操作提出来
     装饰器的使用方法 : 在需要使用该装饰器的函数前@一下就可以
     """
+
     def wrapper(*args, **kargs):
         start_time = time.time()
         f = func(*args, **kargs)
         exec_time = time.time() - start_time
         print("{}'s exec_time:".format(func), exec_time)
         return f
+
     return wrapper
 
+
 import datetime
+
+
 def now_when():
     """
     func : 输出现在的日期时间等
@@ -57,7 +103,8 @@ def now_when():
 
 '''part_1 : 数据文件读写与处理'''
 
-#家卿格式json数据的读写
+
+# 家卿格式json数据的读写
 # with open('dev.json', 'r', encoding='utf-8')as f:
 #     lines = f.readlines()
 #     for line in lines:
@@ -66,7 +113,7 @@ def now_when():
 #             fout.write(("{}\n".format(json.dumps(data, ensure_ascii=False))))
 
 
-def read_file_to_list(filepath,read_all =True,read_many = 0,shuffle=False):
+def read_file_to_list(filepath, read_all=True, read_many=0, shuffle=False):
     """
     func : 将文件读入内存成list
     输入 : 文件路径读入文件
@@ -136,7 +183,7 @@ def write_json_lines(data, filename):
     输入 : data_list，文件路径读入文件
     输出 : 写入json
     """
-    with open(filename,mode='w', encoding='utf-8',) as f:
+    with open(filename, mode='w', encoding='utf-8', ) as f:
         for di in data:
             print(json.dumps(di, ensure_ascii=False), file=f)
 
@@ -147,7 +194,7 @@ def append_json_lines(data, filename):
     输入 : data_list，文件路径读入文件
     输出 : 写入json
     """
-    with open(filename,mode='a+', encoding='utf-8',) as f:
+    with open(filename, mode='a+', encoding='utf-8', ) as f:
         for di in data:
             print(json.dumps(di, ensure_ascii=False), file=f)
 
@@ -263,6 +310,20 @@ def intToRoman(num):
     return THOUSANDS[num // 1000] + HUNDREDS[num % 1000 // 100] + TENS[num % 100 // 10] + ONES[num % 10]
 
 
+def romanToInt(s):
+    '''
+    罗马数字转成数字
+    输入 : 字符串 s - 含有古罗马数字
+    输出 : 整数
+    '''
+    # 构建一个字典记录所有罗马数字子串，注意长度为2的子串记录的值是（实际值 - 子串内左边罗马数字代表的数值）
+    d = {'I': 1, 'IV': 3, 'V': 5, 'IX': 8, 'X': 10, 'XL': 30, 'L': 50, 'XC': 80, 'C': 100, 'CD': 300, 'D': 500,
+         'CM': 800, 'M': 1000}
+    # 遍历整个 ss 的时候判断当前位置和前一个位置的两个字符组成的字符串是否在字典内，如果在就记录值，不在就说明当前位置不存在小数字在前面的情况，直接记录当前位置字符对应值
+    return sum(d.get(s[max(i - 1, 0):i + 1], d[n]) for i, n in enumerate(s))
+    # 遍历经过 IVIV 的时候先记录 II 的对应值 11 再往前移动一步记录 IVIV 的值 33，加起来正好是 IVIV 的真实值 44。max 函数在这里是为了防止遍历第一个字符的时候出现 [-1:0][−1:0] 的情况
+
+
 def getChineseSentence(word):
     """
     func : 得到字符串中的中文
@@ -354,7 +415,7 @@ def cndb_givenP_findTriples_toList(p, find_part, find_all=False):
 '''part_4 : Algorithms'''
 
 
-def binary_search(target,num_list):
+def binary_search(target, num_list):
     """
     func : 二分查找，要求list有序
     输入 : target - 要查找的数字，list-待查找序列
@@ -362,15 +423,15 @@ def binary_search(target,num_list):
     """
     low = 0
     high = len(num_list) - 1
-    while low<= high:
-        mid = (low+high)//2
+    while low <= high:
+        mid = (low + high) // 2
         item = num_list[mid]
         if target == item:
             return mid
         elif target < item:
             high = mid - 1
         else:
-            low = mid +1
+            low = mid + 1
     print("not found!")
     return -1
 
@@ -446,8 +507,10 @@ join()方法可以等待子进程结束后再继续往下运行，通常用于�
     pass
 
 
-import  psutil
+import psutil
 import platform
+
+
 def show_computer_info():
     def get_windows_cpu_speed():
         import winreg
@@ -475,6 +538,7 @@ def show_computer_info():
         mem2 = str(mem.free / 1024 / 1024 / 1024)
         print("内存总数为:", mem1[0:3], "G")
         print("空闲内存总数:", mem2[0:3], "G")
+
     print("cpu的频率 :", get_cpu_speed())
     get_cpu_info()
     get_mem_info()
