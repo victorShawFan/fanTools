@@ -1,8 +1,8 @@
 '''
 fanTools : Tools Created by xfan
 For coding efficiency
-fourth edition:
-2021/05/16
+fifth edition:
+2021/05/24
 '''
 import collections
 import json
@@ -113,6 +113,31 @@ def now_when():
 #             fout.write(("{}\n".format(json.dumps(data, ensure_ascii=False))))
 
 
+def read_dictJson2dictList(file):
+    '''
+    func : 对于数据格式为dictline的json,读取其数据到一个list中
+    输入 : 每一行是一个dict的json文件路径
+    输出 : 一个全是dict的list
+    '''
+    huge_dict = []
+    dict_num = 0
+    with open(file, 'r', encoding='utf=8')as f:
+        lines = f.readlines()
+        for line in lines:
+            data = json.loads(line)
+            huge_dict.append(data)
+            dict_num += 1
+    print("number of dicts : ", dict_num)
+    return huge_dict
+
+
+def write2json(data, file_path):
+    '''write a dict to jsonfile'''
+    with open(file_path, "a+", encoding="UTF-8") as f_out:
+        f_out.write("{}\n".format(json.dumps(data, ensure_ascii=False)))
+    return
+
+
 def read_file_to_list(filepath, read_all=True, read_many=0, shuffle=False):
     """
     func : 将文件读入内存成list
@@ -208,6 +233,7 @@ def write_strLineTo_file(filepath, str):
     with open(filepath, 'a+', encoding='utf-8')as f:
         f.write(str)
         f.write("\n")
+    return
 
 
 def file_showOneLine_toStr(filepath):
@@ -223,6 +249,44 @@ def file_showOneLine_toStr(filepath):
 
 
 '''part_2 : nlp常用工具'''
+
+
+def clean_en_text(text):
+    '''英文文本清洗'''
+    text = text.lower()
+    text = re.sub(r"what's", "what is ", text)
+    text = re.sub(r"\'s", " ", text)
+    text = re.sub(r"\'ve", " have ", text)
+    text = re.sub(r"can't", "can not ", text)
+    text = re.sub(r"n't", " not ", text)
+    text = re.sub(r"i'm", "i am ", text)
+    text = re.sub(r"\'re", " are ", text)
+    text = re.sub(r"\'d", " would ", text)
+    text = re.sub(r"\'ll", " will ", text)
+    text = re.sub(r"\'scuse", " excuse ", text)
+    text = re.sub('\W', ' ', text)
+    text = re.sub('\s+', ' ', text)
+    text = text.strip(' ')
+    return text
+
+
+def cleanText(text):
+    '''将字符串去除空格和\t和\n等杂质,正则版'''
+    text = text.strip()
+    text = re.sub(r"\n", "", text)
+    text = re.sub(r"\t", "", text)
+    text = re.sub(r" ", "", text)
+    return text
+
+
+def cleanStr(str):
+    '''将字符串去除空格和\t和\n等杂质，python字符串版'''
+    return str.replace('\n', '').replace('\t', '').replace(' ', '')
+
+
+def remove_herf(str):
+    '''去除字符串中的herf'''
+    return re.sub('<a[^>]*>', '', str).replace('</a>', '')
 
 
 def str_countChar_to_dict(string):
@@ -412,6 +476,16 @@ def cndb_givenP_findTriples_toList(p, find_part, find_all=False):
         return list_all2
 
 
+def mongo_subMatch2list(collection, key, value):
+    '''
+    func : 对于指定的mongodb的colletion，给于key和value，返回所有匹配的结果
+    输入 : collection为表名, key为键名,value为要匹配的子串
+    输出 : 一个list包含所有该子串匹配的结果
+    '''
+    results = collection.find({key: {"$regex": value}})
+    return list(set([x[key] for x in results]))
+
+
 '''part_4 : Algorithms'''
 
 
@@ -542,6 +616,176 @@ def show_computer_info():
     print("cpu的频率 :", get_cpu_speed())
     get_cpu_info()
     get_mem_info()
+
+
+'''part_6 : 正则常用函数'''
+
+
+def usual_regex_Desc(read=True, cheatSheet=False):
+    '''常用正则表达书的说明'''
+    if read:
+        print('''
+            Python通过re模块支持正则表达式，re 模块使 Python 语言拥有全部的正则表达式功能
+            常用的方法:
+            re.match(pattern, string, flags=0)尝试从字符串的起始位置匹配一个模式，如果不是起始位置匹配成功的话，match()就返回none
+            re.search(pattern, string, flags=0)扫描整个字符串并返回第一个成功的匹配，匹配成功re.search方法返回一个匹配的对象，否则返回None
+            re.match 只匹配字符串的开始，如果字符串开始不符合正则表达式，则匹配失败，函数返回 None，而 re.search 匹配整个字符串，直到找到一个匹配
+            re.sub(pattern, repl, string, count=0, flags=0)提供了re.sub用于替换字符串中的匹配项
+            re.compile(pattern[, flags])用于编译正则表达式，生成一个正则表达式（ Pattern ）对象;
+            re.findall(pattern, string, flags=0)用于在字符串中找到正则表达式所匹配的所有子串，并返回一个列表，如果没有找到匹配的，则返回空列表。
+            re.finditer(pattern, string, flags=0)和 findall 类似，在字符串中找到正则表达式所匹配的所有子串，并把它们作为一个迭代器返回
+            re.split(pattern, string[, maxsplit=0, flags=0])按照能够匹配的子串将字符串分割后返回列表
+            ''')
+    if cheatSheet:
+        print('''. 
+            11. 数字 : 
+            验证数字：^[0-9]*$
+            验证n位的数字：^\d{n}$
+            验证至少n位数字：^\d{n,}$
+            验证m-n位的数字：^\d{m,n}$
+            验证零和非零开头的数字：^(0|[1-9][0-9]*)$
+            验证有两位小数的正实数：^[0-9]+(.[0-9]{2})?$
+            验证有1-3位小数的正实数：^[0-9]+(.[0-9]{1,3})?$
+            验证非零的正整数：^\+?[1-9][0-9]*$
+            验证非零的负整数：^\-[1-9][0-9]*$
+            验证非负整数（正整数 + 0） ^\d+$
+            验证非正整数（负整数 + 0） ^((-\d+)|(0+))$
+            整数：^-?\d+$
+            非负浮点数（正浮点数 + 0）：^\d+(\.\d+)?$
+            正浮点数 ^(([0-9]+\.[0-9]*[1-9][0-9]*)|([0-9]*[1-9][0-9]*\.[0-9]+)|([0-9]*[1-9][0-9]*))$
+            非正浮点数（负浮点数 + 0） ^((-\d+(\.\d+)?)|(0+(\.0+)?))$
+            负浮点数 ^(-(([0-9]+\.[0-9]*[1-9][0-9]*)|([0-9]*[1-9][0-9]*\.[0-9]+)|([0-9]*[1-9][0-9]*)))$
+            浮点数 ^(-?\d+)(\.\d+)?$
+            12. 字符串 : 
+            英文和数字：^[A-Za-z0-9]+$ 或 ^[A-Za-z0-9]{4,40}$
+            长度为3-20的所有字符：^.{3,20}$
+            由26个英文字母组成的字符串：^[A-Za-z]+$
+            由26个大写英文字母组成的字符串：^[A-Z]+$
+            由26个小写英文字母组成的字符串：^[a-z]+$
+            由数字和26个英文字母组成的字符串：^[A-Za-z0-9]+$
+            由数字、26个英文字母或者下划线组成的字符串：^\w+$ 或 ^\w{3,20}$
+            中文、英文、数字包括下划线：^[\u4E00-\u9FA5A-Za-z0-9_]+$
+            中文、英文、数字但不包括下划线等符号：^[\u4E00-\u9FA5A-Za-z0-9]+$ 或 ^[\u4E00-\u9FA5A-Za-z0-9]{2,20}$
+            可以输入含有^%&',;=?$\”等字符：[^%&',;=?$\x22]+
+            禁止输入含有\~的字符：[^~\x22]+
+            13.特殊 :
+            URL:/^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/
+            IP 地址:/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+            HTML 标签:/^<([a-z]+)([^<]+)*(?:>(.*)<\/\1>|\s+\/>)$/
+            Unicode编码中的汉字范围:/^[u4e00-u9fa5],{0,}$/
+            匹配中文字符的正则表达式:[\u4e00-\u9fa5]
+            ''')
+
+
+def str_extract_mailAddr(mail_str):
+    '''
+    func : 邮箱
+    抽取字符串中的邮箱地址
+    输入str返回一个list
+    '''
+    pattern = re.compile(r"[a-zA-Z0-9_-]+@[a-zA-Z0-9_-]+(?:\.[a-zA-Z0-9_-]+)")
+    res_list = pattern.findall(mail_str)
+    return res_list
+
+
+def str_extract_personal_ID(strs):
+    '''
+    func : 身份证号
+    抽取字符串中的身份证号
+    输入str返回一个list
+    '''
+    pattern = re.compile(
+        r"[1-9]\d{5}(?:18|19|(?:[23]\d))\d{2}(?:(?:0[1-9])|(?:10|11|12))(?:(?:[0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]")
+    res_list = pattern.findall(strs)
+    return res_list
+
+
+def str_extract_CN_cellPhoneNumber(strs):
+    '''
+    func : 国内手机号码
+    抽取字符串中的国内手机号码
+    输入str返回一个list
+    '''
+    pattern = re.compile(r"1[356789]\d{9}")
+    res_list = pattern.findall(strs)
+    return res_list
+
+
+def str_extract_CN_phoneNumber(strs):
+    '''
+    func : 国内固定电话
+    抽取字符串中的国内固定电话
+    输入str返回一个list
+    '''
+    pattern = re.compile(r"\d{3}-\d{8}|\d{4}-\d{7}")
+    res_list = pattern.findall(strs)
+    return res_list
+
+
+def str_extract_webSite(strs):
+    '''
+    func : 域名
+    抽取字符串中的网站域名
+    输入str返回一个list
+    '''
+    pattern = re.compile(r"(?:(?:http:\/\/)|(?:https:\/\/))?(?:[\w](?:[\w\-]{0,61}[\w])?\.)+[a-zA-Z]{2,6}(?:\/)")
+    res_list = pattern.findall(strs)
+    return res_list
+
+
+def str_extract_IP_addr(strs):
+    '''
+    func : IP地址
+    抽取字符串中的IP地址
+    输入str返回一个list
+    '''
+    pattern = re.compile(r"((?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d))")
+    res_list = pattern.findall(strs)
+    return res_list
+
+
+def str_extract_datetime(strs):
+    '''
+    func : 日期
+    抽取字符串中的日期yyyyMMdd、yyyy-MM-dd、yyyy/MM/dd、yyyy.MM.dd
+    输入str返回一个list
+    '''
+    pattern = re.compile(r"\d{4}(?:-|\/|.)\d{1,2}(?:-|\/|.)\d{1,2}")
+    res_list = pattern.findall(strs)
+    return res_list
+
+
+def str_extract_postcode(strs):
+    '''
+    func : 国内邮政编码
+    抽取字符串中的国内邮政编码四级六位数编码结构-前两位数字表示省（直辖市、自治区）-第三位数字表示邮区；第四位数字表示县（市）-最后两位数字表示投递局（所）
+    输入str返回一个list
+    '''
+    pattern = re.compile(r"[1-9]\d{5}(?!\d)")
+    res_list = pattern.findall(strs)
+    return res_list
+
+
+def str_extract_password(strs):
+    '''
+    func : 密码
+    抽取字符串中的密码(以字母开头，长度在6~18之间，只能包含字母、数字和下划线)
+    输入str返回一个list
+    '''
+    pattern = re.compile(r"[a-zA-Z](?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{8,10}")
+    res_list = pattern.findall(strs)
+    return res_list
+
+
+def str_extract_chinese(strs):
+    '''
+    func : 中文字符
+    抽取字符串中的中文字符，分割成字符级别list
+    输入str返回一个list
+    '''
+    pattern = re.compile(r"[\u4e00-\u9fa5]")
+    res_list = pattern.findall(strs)
+    return res_list
 
 
 def main():
