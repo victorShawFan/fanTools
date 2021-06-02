@@ -10,18 +10,24 @@ import random
 import re
 import time
 from difflib import SequenceMatcher
+from string import punctuation
 
 import jieba
 import pymongo
 
 # 因为太过简易使用所以暂时不写做func但又很好用的包：
 # 1 - synonyms,
-
 '''part_0 : 杂活王'''
 
 
-def show_me_pycharm_shortcut():
-    print('''
+def show_me_shortcut(pycharm=True, vscode=False):
+    """展示IDE的快捷键
+    Args:
+        pycharm (bool, optional): 默认使用pycharm. Defaults to True.
+        vscode (bool, optional): 默认不使用VSCode. Defaults to False.
+    """
+    if pycharm:
+        print('''
     git查看代码变动 : git diff
     # 代码整理
     快速建立遍历结构 : iter + enter
@@ -59,6 +65,13 @@ def show_me_pycharm_shortcut():
     万能命令行 : ctrl+shift+A
     打开快捷键说明文档 : ctrl+shift+A 键入-> keymap
     ''')
+    if vscode:
+        print('''
+              自动indent代码:alt+shift+F
+              Ctrl+alt+shift+↑/↓ : 选中多行多光标同时操作
+              Alt+↑/↓ : 拖着这一行上下移动
+              Alt+shift+↑/↓ : 复制一行
+              ''')
 
 
 def lineGap_xf():
@@ -121,7 +134,7 @@ def read_dictJson2dictList(file):
     '''
     huge_dict = []
     dict_num = 0
-    with open(file, 'r', encoding='utf=8')as f:
+    with open(file, 'r', encoding='utf=8') as f:
         lines = f.readlines()
         for line in lines:
             data = json.loads(line)
@@ -145,7 +158,7 @@ def read_file_to_list(filepath, read_all=True, read_many=0, shuffle=False):
     输出 : 以行为单位（\n结尾）的List
     """
     if read_all:
-        with open(filepath, 'r', encoding='utf-8')as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             list_all = [x.rstrip('\n') for x in f.readlines()]
         if shuffle:
             random.shuffle(list_all)
@@ -153,11 +166,12 @@ def read_file_to_list(filepath, read_all=True, read_many=0, shuffle=False):
     elif read_many:
         tag = 0
         list_all = []
-        with open(filepath, 'r', encoding='utf-8')as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             for x in f.readlines():
                 list_all.append(x.rstrip('\n'))
                 tag += 1
-                if tag == read_many: break
+                if tag == read_many:
+                    break
         if shuffle:
             random.shuffle(list_all)
         return list_all
@@ -208,7 +222,11 @@ def write_json_lines(data, filename):
     输入 : data_list，文件路径读入文件
     输出 : 写入json
     """
-    with open(filename, mode='w', encoding='utf-8', ) as f:
+    with open(
+            filename,
+            mode='w',
+            encoding='utf-8',
+    ) as f:
         for di in data:
             print(json.dumps(di, ensure_ascii=False), file=f)
 
@@ -219,7 +237,11 @@ def append_json_lines(data, filename):
     输入 : data_list，文件路径读入文件
     输出 : 写入json
     """
-    with open(filename, mode='a+', encoding='utf-8', ) as f:
+    with open(
+            filename,
+            mode='a+',
+            encoding='utf-8',
+    ) as f:
         for di in data:
             print(json.dumps(di, ensure_ascii=False), file=f)
 
@@ -230,7 +252,7 @@ def write_strLineTo_file(filepath, str):
     输入 : 将要写入的文件路径和待写入的一行字符串
     输出 : 无，只是以追加形式将字符串写入文件中，自动换行
     """
-    with open(filepath, 'a+', encoding='utf-8')as f:
+    with open(filepath, 'a+', encoding='utf-8') as f:
         f.write(str)
         f.write("\n")
     return
@@ -242,7 +264,7 @@ def file_showOneLine_toStr(filepath):
     输入 : 文件路径读入文件
     输出 : 以行为单位（\n结尾）的List
     """
-    with open(filepath, 'r', encoding='utf-8', errors='ignore')as f:
+    with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
         str1 = f.readline()  # 若此时继续调用readline，则往下一行接着读
         print(str1)
         return str1
@@ -268,6 +290,13 @@ def clean_en_text(text):
     text = re.sub('\s+', ' ', text)
     text = text.strip(' ')
     return text
+
+
+def remove_punctuation(str):
+    '''去除字符串里所有的标点符号'''
+    punc = punctuation + u'.,;《》？！“”‘’@#￥%…&×（）——+【】{};；●，。&～、|\s:：'
+    str1 = re.sub(r"[{}]".format(punc), '', str)
+    return str1
 
 
 def cleanText(text):
@@ -333,13 +362,13 @@ def sentence_jieba_wordCount_to_list_printTOP5(sentence):
     return items
 
 
-def seq_similarity_sequenceMatcher(seq1, seq2):
+def seq_similarity_gestalt(seq1, seq2):
     """
-    func : 引用ratio方法，返回序列相似性的度量
+    func : 引用gestalt方法，返回序列相似性的度量，其实就和jaccard差不多
     输入：两个序列 - 字符串/list/tuple
     输出：一个float数字 - 两个序列的相似度
     """
-    return SequenceMatcher(None, seq1, seq2)
+    return SequenceMatcher(None, seq1, seq2).ratio()
 
 
 def sentence_similarity_Jaccrad(model, reference):
@@ -371,7 +400,9 @@ def intToRoman(num):
     HUNDREDS = ["", "C", "CC", "CCC", "CD", "D", "DC", "DCC", "DCCC", "CM"]
     TENS = ["", "X", "XX", "XXX", "XL", "L", "LX", "LXX", "LXXX", "XC"]
     ONES = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX"]
-    return THOUSANDS[num // 1000] + HUNDREDS[num % 1000 // 100] + TENS[num % 100 // 10] + ONES[num % 10]
+    return THOUSANDS[num // 1000] + HUNDREDS[num % 1000 //
+                                             100] + TENS[num % 100 //
+                                                         10] + ONES[num % 10]
 
 
 def romanToInt(s):
@@ -381,8 +412,21 @@ def romanToInt(s):
     输出 : 整数
     '''
     # 构建一个字典记录所有罗马数字子串，注意长度为2的子串记录的值是（实际值 - 子串内左边罗马数字代表的数值）
-    d = {'I': 1, 'IV': 3, 'V': 5, 'IX': 8, 'X': 10, 'XL': 30, 'L': 50, 'XC': 80, 'C': 100, 'CD': 300, 'D': 500,
-         'CM': 800, 'M': 1000}
+    d = {
+        'I': 1,
+        'IV': 3,
+        'V': 5,
+        'IX': 8,
+        'X': 10,
+        'XL': 30,
+        'L': 50,
+        'XC': 80,
+        'C': 100,
+        'CD': 300,
+        'D': 500,
+        'CM': 800,
+        'M': 1000
+    }
     # 遍历整个 ss 的时候判断当前位置和前一个位置的两个字符组成的字符串是否在字典内，如果在就记录值，不在就说明当前位置不存在小数字在前面的情况，直接记录当前位置字符对应值
     return sum(d.get(s[max(i - 1, 0):i + 1], d[n]) for i, n in enumerate(s))
     # 遍历经过 IVIV 的时候先记录 II 的对应值 11 再往前移动一步记录 IVIV 的值 33，加起来正好是 IVIV 的真实值 44。max 函数在这里是为了防止遍历第一个字符的时候出现 [-1:0][−1:0] 的情况
@@ -407,7 +451,8 @@ def mongo_if_get_cndbPedia():
     输入 : None
     输出 : db对象，可以用collection = db.triples获取所有三元组
     """
-    client = pymongo.MongoClient('mongodb://gdmdbuser:6QEUI8dhnq@10.176.40.106:27017')
+    client = pymongo.MongoClient(
+        'mongodb://gdmdbuser:6QEUI8dhnq@10.176.40.106:27017')
     db = client.cndbpedia
     collection = db.triples
     if (collection.find({"s": "木蝴蝶（中药）"}).count()) == 21:
@@ -423,7 +468,8 @@ def cndb_givenS_findAllP_toDict(s):
     输入 : str-实体s的字符串
     输出 : dict-包含其在cndbpedia对应所有的关系
     """
-    client = pymongo.MongoClient('mongodb://gdmdbuser:6QEUI8dhnq@10.176.40.106:27017')
+    client = pymongo.MongoClient(
+        'mongodb://gdmdbuser:6QEUI8dhnq@10.176.40.106:27017')
     db = client.cndbpedia
     collection = db.triples
     results = collection.find({"s": s})
@@ -439,7 +485,8 @@ def cndb_countNumofP_toDict(p):
     输入 : str-关系p的字符串
     输出 : dict-包含该关系其在cndbpedia对应的数量
     """
-    client = pymongo.MongoClient('mongodb://gdmdbuser:6QEUI8dhnq@10.176.40.106:27017')
+    client = pymongo.MongoClient(
+        'mongodb://gdmdbuser:6QEUI8dhnq@10.176.40.106:27017')
     db = client.cndbpedia
     collection = db.triples
     results = collection.find({"p": p})
@@ -455,7 +502,8 @@ def cndb_givenP_findTriples_toList(p, find_part, find_all=False):
     输入 : str-关系p的字符串,fing_part可以为取部分,find_all为真时取全部
     输出 : list-包含该关系其在cndbpedia对应的triple，find_part为真时取find_part个
     """
-    client = pymongo.MongoClient('mongodb://gdmdbuser:6QEUI8dhnq@10.176.40.106:27017')
+    client = pymongo.MongoClient(
+        'mongodb://gdmdbuser:6QEUI8dhnq@10.176.40.106:27017')
     db = client.cndbpedia
     collection = db.triples
     results = collection.find({"p": p})
@@ -472,7 +520,8 @@ def cndb_givenP_findTriples_toList(p, find_part, find_all=False):
             tag += 1
             list_part = [result["s"], result["p"], result["o"]]
             list_all2.append(list_part)
-            if tag == find_part: break
+            if tag == find_part:
+                break
         return list_all2
 
 
@@ -588,7 +637,9 @@ import platform
 def show_computer_info():
     def get_windows_cpu_speed():
         import winreg
-        key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
+        key = winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE,
+            r"HARDWARE\DESCRIPTION\System\CentralProcessor\0")
         speed, type = winreg.QueryValueEx(key, "~MHz")
         speed = round(float(speed) / 1024, 1)
         return "{speed} GHz".format(speed=speed)
@@ -695,7 +746,8 @@ def str_extract_personal_ID(strs):
     输入str返回一个list
     '''
     pattern = re.compile(
-        r"[1-9]\d{5}(?:18|19|(?:[23]\d))\d{2}(?:(?:0[1-9])|(?:10|11|12))(?:(?:[0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]")
+        r"[1-9]\d{5}(?:18|19|(?:[23]\d))\d{2}(?:(?:0[1-9])|(?:10|11|12))(?:(?:[0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]"
+    )
     res_list = pattern.findall(strs)
     return res_list
 
@@ -728,7 +780,9 @@ def str_extract_webSite(strs):
     抽取字符串中的网站域名
     输入str返回一个list
     '''
-    pattern = re.compile(r"(?:(?:http:\/\/)|(?:https:\/\/))?(?:[\w](?:[\w\-]{0,61}[\w])?\.)+[a-zA-Z]{2,6}(?:\/)")
+    pattern = re.compile(
+        r"(?:(?:http:\/\/)|(?:https:\/\/))?(?:[\w](?:[\w\-]{0,61}[\w])?\.)+[a-zA-Z]{2,6}(?:\/)"
+    )
     res_list = pattern.findall(strs)
     return res_list
 
@@ -739,7 +793,9 @@ def str_extract_IP_addr(strs):
     抽取字符串中的IP地址
     输入str返回一个list
     '''
-    pattern = re.compile(r"((?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d))")
+    pattern = re.compile(
+        r"((?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d?\d))"
+    )
     res_list = pattern.findall(strs)
     return res_list
 
@@ -786,6 +842,26 @@ def str_extract_chinese(strs):
     pattern = re.compile(r"[\u4e00-\u9fa5]")
     res_list = pattern.findall(strs)
     return res_list
+
+
+'''part_7 : pytorch_utility'''
+
+
+def sentence_get_BERT_Token(samples):
+    '''
+    func : 得到句子的BERT_Token
+    输入 : 中文的字符串sentence
+    输出 : 一个LongTensor类型的Token_list
+    '''
+    import torch
+    from pytorch_transformers import BertTokenizer
+    model_name = 'bert-base-chinese'
+    tokenizer = BertTokenizer.from_pretrained(model_name)
+    tokenized_text = [tokenizer.tokenize(i) for i in samples]
+    input_ids = [tokenizer.convert_tokens_to_ids(i) for i in tokenized_text]
+    input_ids = torch.LongTensor(input_ids)
+    print(input_ids)
+    return input_ids
 
 
 def main():
