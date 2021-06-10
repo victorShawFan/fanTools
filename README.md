@@ -14,3 +14,6 @@ python_course.ipynb - python课程配套notebook
 torch_utils - pytorch常用函数
 
 ![image](https://user-images.githubusercontent.com/40328132/119609350-03684100-be2a-11eb-970e-a47a7c510ac7.png)
+
+wordvecVisualized.py - 词向量聚类与可视化
+![image](https://user-images.githubusercontent.com/40328132/121529309-dd988a00-ca2e-11eb-92f2-4ef47aabe337.png)
