@@ -2,8 +2,9 @@
 fanTools : Tools Created by xfan
 For coding efficiency
 fifth edition:
-2021/05/24
+2021/06/04
 '''
+import sys
 import collections
 import json
 import random
@@ -18,6 +19,11 @@ import pymongo
 # 因为太过简易使用所以暂时不写做func但又很好用的包：
 # 1 - synonyms,
 '''part_0 : 杂活王'''
+
+def how_big_is(x):
+    '''显示一个变量占多少字节'''
+    print(f'{x} is ',sys.getsizeof(x),'Bytes')
+    return sys.getsizeof(x)
 
 
 def show_me_shortcut(pycharm=True, vscode=False):
@@ -72,15 +78,6 @@ def show_me_shortcut(pycharm=True, vscode=False):
               Alt+↑/↓ : 拖着这一行上下移动
               Alt+shift+↑/↓ : 复制一行
               ''')
-
-
-def lineGap_xf():
-    """
-    将打印结果用线隔开
-    """
-    print()
-    print("--------------------------------------------")
-    print()
 
 
 def time_calc(func):
@@ -439,6 +436,34 @@ def getChineseSentence(word):
     输出 : str
     """
     return ''.join(re.findall(u'[\u4e00-\u9fa5]', word))
+
+
+def vector_visualization():
+    print('''
+    # 先聚类
+    y_pred = DBSCAN(eps=eps).fit_predict(embeds)
+    # 然后降维
+    dim = PCA(n_components=2).fit_transform(embeds)[:, :2]
+    # 获得类别总数
+    classes = set([i for i in y_pred])
+
+    # 获得聚类信息
+    cluster = {}
+    for i, j in zip(y_pred, values):
+        if i != -1:
+            li = cluster.get(i, [])
+            li.append(j)
+            cluster[i] = li
+
+    # 画图以及保存
+    plt.clf()
+    plt.figure(figsize=(9, 9))
+    plt.title('%s密度聚类效果' % file.strip('.txt'))
+    plt.scatter(dim[:, 0], dim[:, 1], c=y_pred)
+    for w, (x, y) in zip(values, dim):
+        plt.text(x + 0.005, y + 0.005, w)
+    plt.savefig(os.path.join(output, '%s.png' % file.strip('.txt')))
+    ''')
 
 
 '''part_3 : 数据库常用操作'''
@@ -847,7 +872,7 @@ def str_extract_chinese(strs):
 '''part_7 : pytorch_utility'''
 
 
-def sentence_get_BERT_Token(samples):
+def sentence_get_BERT_Token_online(samples):
     '''
     func : 得到句子的BERT_Token
     输入 : 中文的字符串sentence
