@@ -4,12 +4,15 @@ For coding efficiency
 fifth edition:
 2021/06/04
 '''
-import sys
 import collections
+import gc
 import json
+import os
 import random
 import re
+import sys
 import time
+import numpy as np
 from difflib import SequenceMatcher
 from string import punctuation
 
@@ -20,10 +23,95 @@ import pymongo
 # 1 - synonyms,
 '''part_0 : 杂活王'''
 
+'''part_0-1 : 提性能(省内存和加速)'''
+
+
 def how_big_is(x):
     '''显示一个变量占多少字节'''
-    print(f'{x} is ',sys.getsizeof(x),'Bytes')
+    print(f'{x} is ', sys.getsizeof(x), 'Bytes')
     return sys.getsizeof(x)
+
+
+def how2watchCodeMemory():
+    '''如何使用memory-profiler查看进程或者代码块的内存消耗'''
+    print('''
+    1. 装饰器+第三方：
+    使用装饰器来分析制定的函数，然后使用特殊脚本运行该脚本（在这种情况下，使用特定参数到Python 解释器）
+    写代码时在要查看的函数钱前@了之后，通过shell调用程序，加载memory_profiler模块并打印内存使用日志。
+    python -m memory_profiler example.py
+    2. api调用：
+    memory_profiler公开了许多要在第三方代码中使用的函数：memory_usage返回一段时间内的内存使用情况。
+    memory_usage(proc=-1, interval=.1, timeout=None)
+    proc代表监控的内容，可以是进程号；
+    interval代表间隔0.1秒获取内存消耗；
+    通过API调用，可以直接在代码内部统计内存的使用。
+    def f(a, n=100): ...
+    from memory_profiler import memory_usage 
+    memory_usage((f, (1,), {'n' : int(1e6)}))
+    ''')
+
+
+def reduce_memory(df):
+    '''
+    func: 内存压缩 - 将一个pandas的Dataframe按每一列压缩至占空间最小的数据类型
+    输入 : 一个Dataframe
+    输出 : 一个Dataframe
+    '''
+    start_mem = df.memory_usage().sum() / 1024 ** 2
+    print("Dataframe reducetion:")
+    print('-' * 70)
+    for col in df.columns:
+        col_type = df[col].dtypes
+        if col_type != object:
+            c_min = df[col].min()
+            c_max = df[col].max()
+            if str(col_type)[:3] == 'int':
+                if c_min > np.iinfo(np.int8).min and c_max < np.iinfo(np.int8).max:
+                    df[col] = df[col].astype(np.int8)
+                    print(f'No.{col} column has converted to np.int8')
+                elif c_min > np.iinfo(np.int16).min and c_max < np.iinfo(np.int16).max:
+                    df[col] = df[col].astype(np.int16)
+                    print(f'No.{col} column has converted to np.int16')
+                elif c_min > np.iinfo(np.int32).min and c_max < np.iinfo(np.int32).max:
+                    df[col] = df[col].astype(np.int32)
+                    print(f'No.{col} column has converted to np.int32')
+                elif c_min > np.iinfo(np.int64).min and c_max < np.iinfo(np.int64).max:
+                    df[col] = df[col].astype(np.int64)
+                    print(f'No.{col} column has converted to np.int64')
+            else:
+                if c_min > np.finfo(np.float16).min and c_max < np.finfo(np.float16).max:
+                    df[col] = df[col].astype(np.float16)
+                    print(f'No.{col} column has converted to np.float16')
+                elif c_min > np.finfo(np.float32).min and c_max < np.finfo(np.float32).max:
+                    df[col] = df[col].astype(np.float32)
+                    print(f'No.{col} column has converted to np.float32')
+                else:
+                    df[col] = df[col].astype(np.float64)
+                    print(f'No.{col} column has converted to np.float64')
+    end_mem = df.memory_usage().sum() / 1024 ** 2
+    print('start_mem : {:.6f} Mb, end_mem : {:.6f} Mb (reduced :{:.6f} %)'.format(start_mem, end_mem,
+                                                                                  100 * (
+                                                                                          start_mem - end_mem) / start_mem))
+    gc.collect()  # 垃圾回收机制，就是把返回处理这些循环引用一共释放掉的对象个数，对已经销毁的对象，Python不会自动释放其占据的内存空间。为了能够充分地利用分配的内存，避免程序跑到一半停止，要时不时地进行内存回收
+    print("-" * 70)
+    return df
+
+
+'''part0-2 : 真杂活'''
+
+
+def del_all_file(path):
+    '''
+    删除path目录下的所有内容
+    '''
+    ls = os.listdir(path)
+    for i in ls:
+        c_path = os.path.join(path, i)
+        if os.path.isdir(c_path):
+            del_all_file(c_path)
+        else:
+            print("del: ", c_path)
+            os.remove(c_path)
 
 
 def show_me_shortcut(pycharm=True, vscode=False):
