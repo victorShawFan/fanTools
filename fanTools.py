@@ -1,26 +1,32 @@
 '''
 fanTools : Tools Created by xfan
 For coding efficiency
-fifth edition:
-2021/06/04
+sixth edition:
+2021/07/29
 '''
 import collections
+import datetime
 import gc
 import json
 import os
 import random
 import re
+import string
 import sys
 import time
-import numpy as np
 from difflib import SequenceMatcher
 from string import punctuation
 
 import jieba
+import jsonlines
+import numpy as np
 import pymongo
+import tensorflow as tf
 
 # 因为太过简易使用所以暂时不写做func但又很好用的包：
 # 1 - synonyms,
+import torch
+
 '''part_0 : 杂活王'''
 
 '''part_0-1 : 提性能(省内存和加速)'''
@@ -114,6 +120,17 @@ def del_all_file(path):
             os.remove(c_path)
 
 
+def when_plot_chinese():
+    '''
+    plt画图时无法显示中文怎么办
+    '''
+    print('''
+    just add :
+    plt.rcParams['font.sans-serif'] = ['KaiTi']  # 指定默认字体
+    plt.rcParams['axes.unicode_minus'] = False  # 解决保存图像是负号'-'显示为方块的问题
+    ''')
+
+
 def show_me_shortcut(pycharm=True, vscode=False):
     """展示IDE的快捷键
     Args:
@@ -185,18 +202,13 @@ def time_calc(func):
     return wrapper
 
 
-import datetime
-
-
-def now_when():
-    """
-    func : 输出现在的日期时间等
-    输入 : 无
-    输出 : str-现在的日期和时间
-    """
-    now = datetime.datetime.now()
-    print(now)
-    return str(now)[:-7]
+def print_time_bar():
+    '''
+    func : 打印当前时间
+    '''
+    nowtime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    print("\n" + "==========" * 8 + "%s" % nowtime)
+    return nowtime
 
 
 '''part_1 : 数据文件读写与处理'''
@@ -219,7 +231,7 @@ def read_dictJson2dictList(file):
     '''
     huge_dict = []
     dict_num = 0
-    with open(file, 'r', encoding='utf=8') as f:
+    with open(file, 'r', encoding='utf-8') as f:
         lines = f.readlines()
         for line in lines:
             data = json.loads(line)
@@ -231,9 +243,15 @@ def read_dictJson2dictList(file):
 
 def write2json(data, file_path):
     '''write a dict to jsonfile'''
-    with open(file_path, "a+", encoding="UTF-8") as f_out:
+    with open(file_path, "a+", encoding="utf-8") as f_out:
         f_out.write("{}\n".format(json.dumps(data, ensure_ascii=False)))
     return
+
+
+def read_bigText(file):
+    '''当文件特别大时，将文件做成一个生成器'''
+    for row in open(file, "r", encoding="utf-8"):
+        yield row
 
 
 def read_file_to_list(filepath, read_all=True, read_many=0, shuffle=False):
@@ -358,6 +376,11 @@ def file_showOneLine_toStr(filepath):
 '''part_2 : nlp常用工具'''
 
 
+def foolTokenizer(x):
+    '''按空格分词'''
+    return re.sub('[%s]' % string.punctuation, "", x).split(" ")
+
+
 def clean_en_text(text):
     '''英文文本清洗'''
     text = text.lower()
@@ -375,6 +398,17 @@ def clean_en_text(text):
     text = re.sub('\s+', ' ', text)
     text = text.strip(' ')
     return text
+
+
+def filterLowFreqWords(arr, MAX_WORDS=10000):
+    '''过滤低频词，MAX_WORDS为保留的最高频的词数量'''
+    arr = [[x if x < MAX_WORDS else 0 for x in example] for example in arr]
+    return arr
+
+
+def NormalizeText(text):
+    '''中文文本清洗'''
+    return re.sub('[\u3000\uac00-\ud7ff]+', ' ', text)
 
 
 def remove_punctuation(str):
@@ -401,6 +435,18 @@ def cleanStr(str):
 def remove_herf(str):
     '''去除字符串中的herf'''
     return re.sub('<a[^>]*>', '', str).replace('</a>', '')
+
+
+def seq_padding(X, maxlen=0, padding=0, self_adapt=False):
+    '''对给入的向量做maxlen长度的padding'''
+    if self_adapt:
+        L = [len(x) for x in X]
+        ML = max(L)
+        return np.array([
+            np.concatenate([x, [padding] * (ML - len(x))]) if len(x) < ML else x for x in X
+        ])
+    else:
+        return np.array([np.concatenate([x, [padding] * (maxlen - len(x))]) if len(x) < maxlen else x for x in X])
 
 
 def str_countChar_to_dict(string):
@@ -964,17 +1010,80 @@ def sentence_get_BERT_Token_online(samples):
     '''
     func : 得到句子的BERT_Token
     输入 : 中文的字符串sentence
-    输出 : 一个LongTensor类型的Token_list
+    输出 : 一个Token_list
     '''
-    import torch
     from pytorch_transformers import BertTokenizer
     model_name = 'bert-base-chinese'
     tokenizer = BertTokenizer.from_pretrained(model_name)
     tokenized_text = [tokenizer.tokenize(i) for i in samples]
     input_ids = [tokenizer.convert_tokens_to_ids(i) for i in tokenized_text]
-    input_ids = torch.LongTensor(input_ids)
-    print(input_ids)
     return input_ids
+
+
+def sentence_get_BERT_Token_local(samples, maxlen):
+    '''
+    func : 得到句子的BERT_Token
+    输入 : samples - 中文的字符串sentence合成的一个list或者array, maxlen - 想要的向量最大长度
+    输出 : 一个二维list的input_ids
+    '''
+    from transformers import BertTokenizer
+    from tqdm import tqdm
+    bert_path = "D:/kwCodes/pretrained_model/chinese_roberta_wwm_ext_pytorch/"  # 该文件夹下存放三个文件（'vocab.txt', 'pytorch_model.bin', 'config.json'）
+    tokenizer = BertTokenizer.from_pretrained(bert_path,
+                                              local_files_only=True)  # 初始化分词器
+    input_ids = []
+    for line in tqdm(enumerate(samples)):
+        encode_dict = tokenizer.encode_plus(text=line,
+                                            max_length=maxlen,
+                                            padding='max_length',
+                                            truncation=True)
+        input_ids.append(encode_dict['input_ids'])
+    return input_ids
+
+
+'''part_8 : machine learning utils'''
+
+
+def set_seed(seed):
+    '''跑实验便于复现，指定随机数'''
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.manual_seed(seed)  # cpu
+    torch.cuda.manual_seed_all(seed)  # gpu
+    torch.backends.cudnn.deterministic = True  # consistent results on the cpu and gpu
+
+
+# 编写自定义指标 - 二分类
+# 精确率评价指标
+def Precision(y_true, y_pred):
+    TP = tf.reduce_sum(y_true * tf.round(y_pred))
+    TN = tf.reduce_sum((1 - y_true) * (1 - tf.round(y_pred)))
+    FP = tf.reduce_sum((1 - y_true) * tf.round(y_pred))
+    FN = tf.reduce_sum(y_true * (1 - tf.round(y_pred)))
+    precision = TP / (TP + FP)
+    return precision
+
+
+# 召回率评价指标
+def Recall(y_true, y_pred):
+    TP = tf.reduce_sum(y_true * tf.round(y_pred))
+    TN = tf.reduce_sum((1 - y_true) * (1 - tf.round(y_pred)))
+    FP = tf.reduce_sum((1 - y_true) * tf.round(y_pred))
+    FN = tf.reduce_sum(y_true * (1 - tf.round(y_pred)))
+    recall = TP / (TP + FN)
+    return recall
+
+
+# F1-score评价指标
+def F1_score(y_true, y_pred):
+    TP = tf.reduce_sum(y_true * tf.round(y_pred))
+    TN = tf.reduce_sum((1 - y_true) * (1 - tf.round(y_pred)))
+    FP = tf.reduce_sum((1 - y_true) * tf.round(y_pred))
+    FN = tf.reduce_sum(y_true * (1 - tf.round(y_pred)))
+    precision = TP / (TP + FP)
+    recall = TP / (TP + FN)
+    F1score = 2 * precision * recall / (precision + recall)
+    return F1score
 
 
 def main():
